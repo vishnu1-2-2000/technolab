@@ -1,0 +1,341 @@
+//LOAD APIs
+//  var _UserName;
+  apiVerifyEmail=function (jsonData) {
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        contentType: 'application/json; charset=utf-8',
+        url: API_EMAIL_BASEURL + '1.0/api/check',
+        data: JSON.stringify(jsonData),
+        success: function (data) {
+            onEmailVerification(data);
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            console.log("apiVerifyEmail: " + thrownError);
+        }
+    });
+ };
+
+ apiLoadBusinessCities=function (cityId) {
+    console.log(cityId)
+      $.ajax({
+          type: 'POST',
+          url: API_BASEURL + '1.0/api/businesscities',
+          dataType: 'xml',
+          success: function (xml) {
+              onBusinessCitiesLoaded(xml, cityId);
+          },
+          error: function (xhr, ajaxOptions, thrownError) {
+              console.log("apiLoadBusinessCities: " + thrownError);
+          }
+      });
+  }
+
+function apiLoadStaticCities(cityId) {
+  $.ajax({
+    type: "GET",
+    dataType: "json",
+    contentType: "application/json; charset=utf-8",
+    url: "/data-source/city-with-state.json",
+    success: function (data) {
+      onStaticCityLoaded(data, cityId);
+    },
+    error: function (data, ajaxOptions, thrownError) {
+      console.log("apiLoadStaticCities: " + thrownError);
+    }
+  });
+}
+
+  apiBindDealers = function (cityId) {
+      $.ajax({
+          type: 'POST',
+          url: API_BASEURL + '1.0/api/businesscities/' + cityId + '/websalesdealers',
+          dataType: 'xml',
+          success: function (xml) {
+              onDealersLoaded(xml);
+          },
+          error: function (xhr, ajaxOptions, thrownError) {
+              console.log("apiBindDealers: " + thrownError);
+          }
+      });
+  }
+
+//Load Dealers by CityID
+function apiBindStaticDealers(cityId) {
+  $.ajax({
+    type: "GET",
+    dataType: "json",
+    contentType: "application/json; charset=utf-8",
+    url: "/data-source/dealer.json",
+    success: function (data) {
+      var dealerArr = data.filter(obj => { return obj.cityId == cityId });
+      onStaticDealersLoaded(dealerArr);
+    },
+    error: function (data, ajaxOptions, thrownError) {
+      console.log("apiBindStaticDealers: " + thrownError);
+    }
+  });
+}
+
+  apiSubmitEventRegistration = function (name, mobile, email, eventType) {
+    var xmlDocument = $.parseXML("<EventRegistration/>");
+
+    var nameNode = xmlDocument.createElement("Name");
+    xmlDocument.documentElement.appendChild(nameNode);
+    nameNode.appendChild(document.createTextNode(name));
+
+    var mobileNode = xmlDocument.createElement("Mobile");
+    xmlDocument.documentElement.appendChild(mobileNode);
+    mobileNode.appendChild(document.createTextNode(mobile));
+
+    var emailNode = xmlDocument.createElement("Email");
+    xmlDocument.documentElement.appendChild(emailNode);
+    emailNode.appendChild(document.createTextNode(email));
+
+    var eventTypeNode = xmlDocument.createElement("EventType");
+    xmlDocument.documentElement.appendChild(eventTypeNode);
+    eventTypeNode.appendChild(document.createTextNode(eventType));
+
+    var utm = getUTM();
+
+    var referrerURLNode = xmlDocument.createElement("ReferrerURL");
+    xmlDocument.documentElement.appendChild(referrerURLNode);
+    referrerURLNode.appendChild(document.createTextNode(getRefURL()));
+
+    var utmCampaignNode = xmlDocument.createElement("UTMCampaign");
+    xmlDocument.documentElement.appendChild(utmCampaignNode);
+
+    var utmSourceNode = xmlDocument.createElement("UTMSource");
+    xmlDocument.documentElement.appendChild(utmSourceNode);
+
+    var utmTermNode = xmlDocument.createElement("UTMTerm");
+    xmlDocument.documentElement.appendChild(utmTermNode);
+
+    var utmContentNode = xmlDocument.createElement("UTMContent");
+    xmlDocument.documentElement.appendChild(utmContentNode);
+
+    var utmMediumNode = xmlDocument.createElement("UTMMedium");
+    xmlDocument.documentElement.appendChild(utmMediumNode);
+
+    var agencyCodeNode = xmlDocument.createElement("AgencyCode");
+    xmlDocument.documentElement.appendChild(agencyCodeNode);
+
+    if (utm) {
+      utmCampaignNode.appendChild(document.createTextNode(utm.ca));
+      utmSourceNode.appendChild(document.createTextNode(utm.so));
+      utmTermNode.appendChild(document.createTextNode(utm.te));
+      utmContentNode.appendChild(document.createTextNode(utm.co));
+      utmMediumNode.appendChild(document.createTextNode(utm.me));
+      agencyCodeNode.appendChild(document.createTextNode(utm.ac));
+    } else {
+      utmCampaignNode.appendChild(document.createTextNode(""));
+      utmSourceNode.appendChild(document.createTextNode(""));
+      utmTermNode.appendChild(document.createTextNode(""));
+      utmContentNode.appendChild(document.createTextNode(""));
+      utmMediumNode.appendChild(document.createTextNode(""));
+      agencyCodeNode.appendChild(document.createTextNode(""));
+    }
+
+    var oSerializer = new XMLSerializer();
+    var data = oSerializer.serializeToString(xmlDocument);
+
+    //console.log(data);
+
+    $.ajax({
+      type: "POST",
+      url: API_BASEURL + "1.0/api/event/register",
+      processData: false,
+      dataType: "xml",
+      contentType: "application/xml",
+      data: data,
+      success: function (data) {
+        $type = $(data).find("Type");
+        if ($type.text() == "SUCCESS") {
+          onEventRegistrationSuccess(data, name);
+        } else {
+          onEventRegistrationWarning(data);
+        }
+      },
+      error: function (xhr, ajaxOptions, thrownError) {
+        onEventRegistrationError(xhr, ajaxOptions, thrownError);
+      }
+    });
+  };
+
+  apiSubmitEnquireForm = function (salutation, name, stateId, cityId, pincode, mobile, mobileOTP, email, emailOTP, variantId, dealerId, isPromotionalMailer, footPrint, sessionPrint, buyPlanNextCar, buyMeetingTime, buyContactMode) {
+    var isExchange;
+    // _UserName=name;
+    var xmlDocument = $.parseXML("<BuynowDyn/>");
+
+    var nameNode = xmlDocument.createElement('Name');
+    xmlDocument.documentElement.appendChild(nameNode);
+    nameNode.appendChild(document.createTextNode(name));
+
+    var address1Node = xmlDocument.createElement('Address1');
+    xmlDocument.documentElement.appendChild(address1Node);
+    address1Node.appendChild(document.createTextNode(""));
+
+    var address2Node = xmlDocument.createElement('Address2');
+    xmlDocument.documentElement.appendChild(address2Node);
+    address2Node.appendChild(document.createTextNode(""));
+
+    var address3Node = xmlDocument.createElement('Address3');
+    xmlDocument.documentElement.appendChild(address3Node);
+    address3Node.appendChild(document.createTextNode(""));
+
+    var pincodeNode = xmlDocument.createElement('Pincode');
+    xmlDocument.documentElement.appendChild(pincodeNode);
+    pincodeNode.appendChild(document.createTextNode(pincode));
+
+    var cityIdNode = xmlDocument.createElement('CityId');
+    xmlDocument.documentElement.appendChild(cityIdNode);
+    cityIdNode.appendChild(document.createTextNode(cityId));
+
+    var phoneNode = xmlDocument.createElement('Phone');
+    xmlDocument.documentElement.appendChild(phoneNode);
+    phoneNode.appendChild(document.createTextNode(""));
+
+    var mobileNode = xmlDocument.createElement('Mobile');
+    xmlDocument.documentElement.appendChild(mobileNode);
+    mobileNode.appendChild(document.createTextNode(mobile));
+
+    var emailNode = xmlDocument.createElement('Email');
+    xmlDocument.documentElement.appendChild(emailNode);
+    emailNode.appendChild(document.createTextNode(email));
+
+    var variantIdNode = xmlDocument.createElement('VariantId');
+    xmlDocument.documentElement.appendChild(variantIdNode);
+    variantIdNode.appendChild(document.createTextNode(variantId));
+
+    var salutationNode = xmlDocument.createElement('Salutation');
+    xmlDocument.documentElement.appendChild(salutationNode);
+    salutationNode.appendChild(document.createTextNode(salutation));
+
+    var dealerIdNode = xmlDocument.createElement('DealerId');
+    xmlDocument.documentElement.appendChild(dealerIdNode);
+    dealerIdNode.appendChild(document.createTextNode(dealerId));
+
+    var buyPlanNextCarNode = xmlDocument.createElement('BuyPlanNextCar');
+    xmlDocument.documentElement.appendChild(buyPlanNextCarNode);
+    buyPlanNextCarNode.appendChild(document.createTextNode(buyPlanNextCar));
+
+    var buyMeetingTimeNode = xmlDocument.createElement('BuyMeetingTime');
+    xmlDocument.documentElement.appendChild(buyMeetingTimeNode);
+    buyMeetingTimeNode.appendChild(document.createTextNode(buyMeetingTime));
+
+    var currentOwnedCarsNode = xmlDocument.createElement('CurrentOwnedCars');
+    xmlDocument.documentElement.appendChild(currentOwnedCarsNode);
+    currentOwnedCarsNode.appendChild(document.createTextNode(""));
+
+    var stateIdNode = xmlDocument.createElement('StateId');
+    xmlDocument.documentElement.appendChild(stateIdNode);
+    stateIdNode.appendChild(document.createTextNode(stateId));
+
+    var otherCityNode = xmlDocument.createElement('OtherCity');
+    xmlDocument.documentElement.appendChild(otherCityNode);
+    otherCityNode.appendChild(document.createTextNode(""));
+
+    var buyContactNode = xmlDocument.createElement('BuyContactMode');
+    xmlDocument.documentElement.appendChild(buyContactNode);
+    buyContactNode.appendChild(document.createTextNode(buyContactMode));
+
+    var utm = getUTM();
+
+    var referrerURLNode = xmlDocument.createElement('ReferrerURL');
+    xmlDocument.documentElement.appendChild(referrerURLNode);
+    referrerURLNode.appendChild(document.createTextNode(getRefURL()));
+
+    var utmCampaignNode = xmlDocument.createElement('UTMCampaign');
+    xmlDocument.documentElement.appendChild(utmCampaignNode);
+
+    var utmSourceNode = xmlDocument.createElement('UTMSource');
+    xmlDocument.documentElement.appendChild(utmSourceNode);
+
+    var utmTermNode = xmlDocument.createElement('UTMTerm');
+    xmlDocument.documentElement.appendChild(utmTermNode);
+
+    var utmContentNode = xmlDocument.createElement('UTMContent');
+    xmlDocument.documentElement.appendChild(utmContentNode);
+
+    var utmMediumNode = xmlDocument.createElement('UTMMedium');
+    xmlDocument.documentElement.appendChild(utmMediumNode);
+
+
+    var agencyCodeNode = xmlDocument.createElement('AgencyCode');
+    xmlDocument.documentElement.appendChild(agencyCodeNode);
+    
+    if (utm) {
+        utmCampaignNode.appendChild(document.createTextNode(utm.ca));
+        utmSourceNode.appendChild(document.createTextNode(utm.so));
+        utmTermNode.appendChild(document.createTextNode(utm.te));
+        utmContentNode.appendChild(document.createTextNode(utm.co));
+        utmMediumNode.appendChild(document.createTextNode(utm.me));
+        agencyCodeNode.appendChild(document.createTextNode(utm.ac));
+   
+    } else {
+
+        utmCampaignNode.appendChild(document.createTextNode(""));
+        utmSourceNode.appendChild(document.createTextNode(""));
+        utmTermNode.appendChild(document.createTextNode(""));
+        utmContentNode.appendChild(document.createTextNode(""));
+        utmMediumNode.appendChild(document.createTextNode(""));
+        agencyCodeNode.appendChild(document.createTextNode(""));
+    }
+    
+    var isPromotionalMailerNode = xmlDocument.createElement('IsPromotionalMailer');
+    xmlDocument.documentElement.appendChild(isPromotionalMailerNode);
+    isPromotionalMailerNode.appendChild(document.createTextNode(isPromotionalMailer));
+
+    var mobileOTPNode = xmlDocument.createElement('MobileOTP');
+    xmlDocument.documentElement.appendChild(mobileOTPNode);
+    mobileOTPNode.appendChild(document.createTextNode(mobileOTP));
+
+    var emailOTPNode = xmlDocument.createElement('EmailOTP');
+    xmlDocument.documentElement.appendChild(emailOTPNode);
+    emailOTPNode.appendChild(document.createTextNode(emailOTP));
+
+    var isTFSINFinanceNode = xmlDocument.createElement('IsTFSINFinance');
+    xmlDocument.documentElement.appendChild(isTFSINFinanceNode);
+    isTFSINFinanceNode.appendChild(document.createTextNode(0));
+
+    var isExchangeNode = xmlDocument.createElement('IsExchange');
+    xmlDocument.documentElement.appendChild(isExchangeNode);
+    isExchangeNode.appendChild(document.createTextNode(0));
+
+    var footPrintNode = xmlDocument.createElement('FootPrint');
+    xmlDocument.documentElement.appendChild(footPrintNode);
+    footPrintNode.appendChild(document.createTextNode(footPrint));
+
+    var sessionPrintNode = xmlDocument.createElement('SessionPrint');
+    xmlDocument.documentElement.appendChild(sessionPrintNode);
+    sessionPrintNode.appendChild(document.createTextNode(sessionPrint));
+
+    var oSerializer = new XMLSerializer();
+    var data = oSerializer.serializeToString(xmlDocument);     
+    var userName=name;  
+    $.ajax({
+        type: 'POST',
+        url: API_BASEURL + '2.0/api/dynamic/buynownopincodeval',
+        processData: false,
+        dataType: "xml",
+        contentType: "application/xml",
+        data: data,
+        success: function (data) {
+            $type = $(data).find('Type')
+            console.log($type.text());
+            // console.log(name);
+            if ($type.text() == "SUCCESS") {
+                onEnquireSuccess(data, userName);
+            }else if ($type.text() == "INVALIDOTP") {
+                onEnquireInvalidOtpError(data, userName);
+            }else if ($type.text() == "DUPLICATE") {                  
+                onEnquireDuplicate(data, userName);
+            }else {
+                onEnquireWarning(data);
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            onEnquireError(xhr, ajaxOptions, thrownError);
+        }
+    });
+}

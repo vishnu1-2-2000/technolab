@@ -1,0 +1,77 @@
+apiGetContent = function (type, footPrint, sessionPrint) {
+    $.ajax({
+        type: 'POST',
+        url: API_BASEURL + '1.0/api/dynamic/content/' + type + '/' + footPrint + '/' + sessionPrint + '/',
+        dataType: 'xml',
+        success: function (data) {
+            onContentLoaded(data);
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            onGetContentError(xhr, ajaxOptions, thrownError);
+        }
+    });
+}
+
+apiGetModelsPrice = function (cityId) {
+    $.ajax({
+        type: 'POST',
+        url: API_BASEURL + '1.0/api/dynamic/price/' + cityId + '/',
+        dataType: 'xml',
+        success: function (data) {
+            onModelsPriceLoaded(data);
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            onModelsPriceError(xhr, ajaxOptions, thrownError);
+        }
+    });
+}
+
+apiSubmitWebsiteFeedback = function (rating, feedback, mobile, otp) {
+
+    var xmlDocument = $.parseXML("<WebsiteFeedback/>");
+
+    var ratingNode = xmlDocument.createElement('Rating');
+    xmlDocument.documentElement.appendChild(ratingNode);
+    ratingNode.appendChild(document.createTextNode(rating));
+
+    var feedbackNode = xmlDocument.createElement('Feedback');
+    xmlDocument.documentElement.appendChild(feedbackNode);
+    feedbackNode.appendChild(document.createTextNode(feedback));
+
+    var mobileNode = xmlDocument.createElement('Mobile');
+    xmlDocument.documentElement.appendChild(mobileNode);
+    mobileNode.appendChild(document.createTextNode(mobile));
+   
+    var OTPNode = xmlDocument.createElement('OTP');
+    xmlDocument.documentElement.appendChild(OTPNode);
+    OTPNode.appendChild(document.createTextNode(otp));
+
+    var IPNode = xmlDocument.createElement('IP');
+    xmlDocument.documentElement.appendChild(IPNode);
+    IPNode.appendChild(document.createTextNode(""));
+
+    var oSerializer = new XMLSerializer();
+    var data = oSerializer.serializeToString(xmlDocument);
+    console.log(data);
+
+    $.ajax({
+        type: 'POST',
+        url: API_BASEURL + '1.0/api/website/feedback',
+        processData: false,
+        dataType: "xml",
+        contentType: "application/xml",
+        data: data,
+        success: function (data) {
+            $type = $(data).find('Type')
+            if ($type.text() == "SUCCESS") {
+                onWebsiteFeedbackSuccess(data, name);
+            }
+            else{
+                onWebsiteFeedbackWarning(data);
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            onWebsiteFeedbackError(xhr, ajaxOptions, thrownError);
+        }
+    });
+}

@@ -1,0 +1,7 @@
+h5:hover{
+    color:blue;
+}
+.offcanvs:hover{
+    color: brown;
+    box-shadow: whitesmoke;
+}
